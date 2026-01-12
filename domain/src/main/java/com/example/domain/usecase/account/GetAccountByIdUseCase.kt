@@ -1,6 +1,6 @@
 package com.example.domain.usecase.account
 
-import co.touchlab.kermit.Logger
+import android.util.Log
 import com.example.domain.model.account.Account
 import com.example.domain.repository.account.AccountRepository
 import kotlinx.coroutines.delay
@@ -11,7 +11,9 @@ import kotlinx.coroutines.delay
 class GetAccountByIdUseCase(
     private val repository: AccountRepository
 ) {
-    private val logger = Logger.withTag("GetAccountByIdUseCase")
+    companion object {
+        private const val TAG = "GetAccountByIdUseCase"
+    }
     
     /**
      * Ejecuta el caso de uso
@@ -19,7 +21,7 @@ class GetAccountByIdUseCase(
      * @return Lista de cuentas o null si hay error
      */
     suspend operator fun invoke(userId: String): List<Account>? {
-        logger.d { "Obteniendo cuentas para el usuario: $userId" }
+        Log.d(TAG, "Obteniendo cuentas para el usuario: $userId")
         
         // Simular delay de carga (3 segundos)
         delay(3000)
@@ -27,10 +29,10 @@ class GetAccountByIdUseCase(
         val accounts = repository.getAccountsById(userId)
         
         return if (accounts != null) {
-            logger.d { "Cuentas obtenidas exitosamente: ${accounts.size} cuenta(s)" }
+            Log.d(TAG, "Cuentas obtenidas exitosamente: ${accounts.size} cuenta(s)")
             accounts
         } else {
-            logger.e { "Error al obtener cuentas para el usuario: $userId" }
+            Log.e(TAG, "Error al obtener cuentas para el usuario: $userId")
             null
         }
     }

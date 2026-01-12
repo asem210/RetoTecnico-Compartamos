@@ -22,6 +22,10 @@ class MainActivity : ComponentActivity() {
                         onBackToHome = {
                             // Could navigate to a home screen or finish activity
                             finish()
+                        },
+                        onTransactionCompleted = { accountCode, amount ->
+                            // Este callback se llamará cuando se complete una transacción
+                            // Ya no es necesario hacer nada aquí, StartViewModel lo maneja
                         }
                     )
                 }

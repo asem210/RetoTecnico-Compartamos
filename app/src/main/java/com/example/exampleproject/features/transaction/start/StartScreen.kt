@@ -31,7 +31,8 @@ import org.koin.androidx.compose.koinViewModel
 fun StartScreen(
     viewModel: StartViewModel = koinViewModel(),
     onBack: () -> Unit = {},
-    onNext: (Account) -> Unit = {}
+    onNext: (Account) -> Unit = {},
+    onTransactionCompleted: ((String, Double) -> Unit)? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
