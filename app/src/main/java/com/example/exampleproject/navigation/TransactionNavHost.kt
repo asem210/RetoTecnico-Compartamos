@@ -1,11 +1,13 @@
 package com.example.exampleproject.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.domain.model.account.Account
+import com.example.domain.model.transaction.TransactionResult
 import com.example.exampleproject.features.transaction.form.FormScreen
 import com.example.exampleproject.features.transaction.start.StartScreen
 import com.example.exampleproject.features.transaction.voucher.VoucherScreen
@@ -22,7 +24,8 @@ sealed class TransactionRoute(val route: String) {
 @Composable
 fun TransactionNavHost(
     navController: NavHostController = rememberNavController(),
-    onBackToHome: () -> Unit = {}
+    onBackToHome: () -> Unit = {},
+    onTransactionCompleted: (String, Double) -> Unit = { _, _ -> }  // accountCode, amount
 ) {
     NavHost(
         navController = navController,
@@ -30,6 +33,14 @@ fun TransactionNavHost(
     ) {
         // START Screen
         composable(TransactionRoute.Start.route) {
+            // Obtener datos de transacción completada si existen
+            val transactionCompletedAccountCode = navController.currentBackStackEntry
+                ?.savedStateHandle
+                ?.get<String>("completedTransactionAccountCode")
+            val transactionCompletedAmount = navController.currentBackStackEntry
+                ?.savedStateHandle
+                ?.get<Double>("completedTransactionAmount")
+
             StartScreen(
                 onBack = { onBackToHome() },
                 onNext = { account ->
@@ -37,8 +48,23 @@ fun TransactionNavHost(
                     val accountJson = Json.encodeToString(account)
                     navController.currentBackStackEntry?.savedStateHandle?.set("accountJson", accountJson)
                     navController.navigate(TransactionRoute.Form.route)
-                }
+                },
+                onTransactionCompleted = if (transactionCompletedAccountCode != null && transactionCompletedAmount != null) {
+                    { accountCode, amount ->
+                        // Ya se ejecutará automáticamente por el ViewModel
+                    }
+                } else null
             )
+
+            // Procesar actualización de saldo si existe
+            LaunchedEffect(transactionCompletedAccountCode, transactionCompletedAmount) {
+                if (transactionCompletedAccountCode != null && transactionCompletedAmount != null) {
+                    onTransactionCompleted(transactionCompletedAccountCode, transactionCompletedAmount)
+                    // Limpiar los datos después de procesarlos
+                    navController.currentBackStackEntry?.savedStateHandle?.remove<String>("completedTransactionAccountCode")
+                    navController.currentBackStackEntry?.savedStateHandle?.remove<Double>("completedTransactionAmount")
+                }
+            }
         }
 
         // FORM Screen
@@ -54,13 +80,8 @@ fun TransactionNavHost(
                 FormScreen(
                     account = account,
                     onBack = { navController.popBackStack() },
-                    onNext = { selectedAccount, amount, description ->
-                        val accountJson = Json.encodeToString(selectedAccount)
-                        navController.currentBackStackEntry?.savedStateHandle?.apply {
-                            set("accountJson", accountJson)
-                            set("amount", amount)
-                            set("description", description)
-                        }
+                    onNavigateToVoucher = { resultJson ->
+                        navController.currentBackStackEntry?.savedStateHandle?.set("transactionResultJson", resultJson)
                         navController.navigate(TransactionRoute.Voucher.route)
                     }
                 )
@@ -69,26 +90,22 @@ fun TransactionNavHost(
 
         // VOUCHER Screen
         composable(TransactionRoute.Voucher.route) {
-            val accountJson = navController.previousBackStackEntry
+            val transactionResultJson = navController.previousBackStackEntry
                 ?.savedStateHandle
-                ?.get<String>("accountJson")
-            val amount = navController.previousBackStackEntry
-                ?.savedStateHandle
-                ?.get<String>("amount") ?: ""
-            val description = navController.previousBackStackEntry
-                ?.savedStateHandle
-                ?.get<String>("description") ?: ""
+                ?.get<String>("transactionResultJson")
 
-            val account = accountJson?.let { Json.decodeFromString<Account>(it) }
+            val transactionResult = transactionResultJson?.let { Json.decodeFromString<TransactionResult>(it) }
 
-            if (account != null) {
+            if (transactionResult != null) {
                 VoucherScreen(
-                    account = account,
-                    amount = amount,
-                    description = description,
+                    transactionResult = transactionResult,
                     onBackToHome = {
-                        navController.popBackStack(TransactionRoute.Start.route, inclusive = true)
-                        onBackToHome()
+                        // Pasar los datos de la transacción completada al volver al Start
+                        navController.getBackStackEntry(TransactionRoute.Start.route).savedStateHandle.apply {
+                            set("completedTransactionAccountCode", transactionResult.originAccountCode)
+                            set("completedTransactionAmount", transactionResult.amount)
+                        }
+                        navController.popBackStack(TransactionRoute.Start.route, inclusive = false)
                     }
                 )
             }

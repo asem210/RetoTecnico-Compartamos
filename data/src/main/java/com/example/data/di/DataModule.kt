@@ -21,9 +21,22 @@ val dataModule = module {
         get<Retrofit>().create(AccountApiService::class.java)
     }
     
+    // API Services - Transaction
+    factory<com.example.data.remote.transaction.TransactionApiService> {
+        get<Retrofit>().create(com.example.data.remote.transaction.TransactionApiService::class.java)
+    }
+    
     // Data Sources - Account
     factory { AccountDataSource(get()) }
     
+    // Data Sources - Transaction
+    factory { com.example.data.datasource.transaction.TransactionDataSource(get()) }
+    
     // Repositories - Account
     factory<AccountRepository> { AccountRepositoryImpl(get()) }
+    
+    // Repositories - Transaction
+    factory<com.example.domain.repository.transaction.TransactionRepository> {
+        com.example.data.repository.transaction.TransactionRepositoryImpl(get())
+    }
 }

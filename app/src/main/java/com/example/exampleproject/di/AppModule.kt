@@ -3,7 +3,6 @@ package com.example.exampleproject.di
 import com.example.exampleproject.MainViewModel
 import com.example.exampleproject.features.transaction.form.FormViewModel
 import com.example.exampleproject.features.transaction.start.StartViewModel
-import com.example.exampleproject.features.transaction.voucher.VoucherViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
@@ -16,6 +15,6 @@ val appModule = module {
     
     // Transaction features
     viewModel { StartViewModel(get()) }
-    viewModel { FormViewModel() }
-    viewModel { params -> VoucherViewModel(params.get(), params.get(), params.get()) }
+    viewModel { FormViewModel(get()) }
+    // VoucherScreen ya no necesita ViewModel
 }

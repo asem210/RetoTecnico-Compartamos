@@ -1,142 +1,86 @@
 package com.example.exampleproject.features.transaction.voucher
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.domain.model.account.Account
+import com.example.domain.model.transaction.TransactionResult
 import com.example.exampleproject.core.presentation.ui.BaseScreen
-import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
+import java.text.NumberFormat
+import java.util.Locale
 
 @Composable
 fun VoucherScreen(
-    account: Account,
-    amount: String,
-    description: String,
-    viewModel: VoucherViewModel = koinViewModel { parametersOf(account, amount, description) },
+    transactionResult: TransactionResult,
     onBackToHome: () -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-
-    // Navigation handler
-    LaunchedEffect(viewModel.navigation) {
-        viewModel.navigation.collect { nav ->
-            when (nav) {
-                VoucherNavigation.GoToHome -> onBackToHome()
-            }
-        }
-    }
-
     BaseScreen {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF5F5F5))
                 .padding(horizontal = 16.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Success Icon
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = Color(0xFF4CAF50),
-                    modifier = Modifier.padding(16.dp)
-                )
-                Text(
-                    text = "¡Transacción Exitosa!",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            // Título de éxito
+            Text(
+                text = "¡Transacción Exitosa!",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center
+            )
 
-            // Voucher Card
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Card con detalles de la transacción
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = "Comprobante de Operación",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    HorizontalDivider()
-
-                    VoucherRow(
-                        label = "Nº de Operación",
-                        value = uiState.transactionId
-                    )
-
-                    VoucherRow(
-                        label = "Fecha y Hora",
-                        value = uiState.transactionDate
-                    )
-
-                    HorizontalDivider()
-
-                    VoucherRow(
-                        label = "Cuenta",
-                        value = uiState.account?.productDescription ?: ""
-                    )
-
-                    VoucherRow(
-                        label = "Número de Cuenta",
-                        value = uiState.account?.maskedAccountCode ?: ""
-                    )
-
-                    HorizontalDivider()
-
-                    VoucherRow(
-                        label = "Monto",
-                        value = "${uiState.account?.currencySymbol} ${uiState.amount}",
-                        valueColor = MaterialTheme.colorScheme.primary,
-                        valueFontWeight = FontWeight.Bold
-                    )
-
-                    if (uiState.description.isNotEmpty()) {
-                        VoucherRow(
-                            label = "Descripción",
-                            value = uiState.description
-                        )
+                    VoucherDetailRow("Código de operación:", transactionResult.operationCode)
+                    VoucherDetailRow("Fecha y hora:", "${transactionResult.operationDate} - ${transactionResult.operationTime}")
+                    VoucherDetailRow("Cuenta origen:", transactionResult.originAccountCode)
+                    VoucherDetailRow("Cuenta destino:", transactionResult.destinationAccountCode)
+                    
+                    // Monto formateado
+                    val formatter = NumberFormat.getCurrencyInstance(Locale("es", "PE"))
+                    formatter.currency = java.util.Currency.getInstance("PEN")
+                    VoucherDetailRow("Monto:", formatter.format(transactionResult.amount))
+                    
+                    if (transactionResult.commission > 0) {
+                        VoucherDetailRow("Comisión:", formatter.format(transactionResult.commission))
+                        VoucherDetailRow("Total:", formatter.format(transactionResult.totalAmount))
+                    }
+                    
+                    if (!transactionResult.description.isNullOrBlank()) {
+                        VoucherDetailRow("Descripción:", transactionResult.description!!)
                     }
                 }
             }
 
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Botón para volver al inicio
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { viewModel.setIntent(VoucherIntent.BackToHome) }
+                onClick = onBackToHome
             ) {
                 Text("Volver al Inicio")
             }
@@ -145,26 +89,20 @@ fun VoucherScreen(
 }
 
 @Composable
-private fun VoucherRow(
-    label: String,
-    value: String,
-    valueColor: Color = MaterialTheme.colorScheme.onSurface,
-    valueFontWeight: FontWeight = FontWeight.Normal
-) {
-    Row(
+fun VoucherDetailRow(label: String, value: String) {
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = valueColor,
-            fontWeight = valueFontWeight
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

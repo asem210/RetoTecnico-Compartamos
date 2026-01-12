@@ -10,4 +10,7 @@ import org.koin.dsl.module
 val domainModule = module {
     // Account use cases
     factory { GetAccountByIdUseCase(get()) }
+    
+    // Transaction use cases
+    factory { com.example.domain.usecase.transaction.CreateTransactionUseCase(get()) }
 }

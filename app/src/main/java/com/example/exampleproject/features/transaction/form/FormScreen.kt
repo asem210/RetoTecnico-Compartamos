@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.example.domain.model.account.Account
 import com.example.exampleproject.core.components.textfield.AmountVisualTransformation
 import com.example.exampleproject.core.presentation.ui.BaseScreen
+import kotlinx.serialization.encodeToString
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -28,7 +29,7 @@ fun FormScreen(
     account: Account,
     viewModel: FormViewModel = koinViewModel(),
     onBack: () -> Unit = {},
-    onNext: (Account, String, String) -> Unit = { _, _, _ -> }
+    onNavigateToVoucher: (String) -> Unit = {}  // Recibe JSON del TransactionResult
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -47,12 +48,18 @@ fun FormScreen(
         viewModel.navigation.collect { nav ->
             when (nav) {
                 is FormNavigation.Back -> onBack()
-                is FormNavigation.Continue -> {
-                    if (uiState.amount.isNotEmpty()) {
-                        onNext(account, uiState.amount, uiState.description)
-                    }
+                is FormNavigation.GoToVoucher -> {
+                    val resultJson = kotlinx.serialization.json.Json.encodeToString(nav.result)
+                    onNavigateToVoucher(resultJson)
                 }
             }
+        }
+    }
+
+    // Auto-navegar cuando la transacción sea exitosa
+    LaunchedEffect(uiState.transactionResult) {
+        if (uiState.transactionResult != null) {
+            viewModel.setIntent(FormIntent.ContinueClicked)
         }
     }
 
@@ -70,7 +77,7 @@ fun FormScreen(
             )
 
             Text(
-                text = "Cuenta seleccionada:",
+                text = "Cuenta origen:",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -82,18 +89,37 @@ fun FormScreen(
             )
 
             OutlinedTextField(
+                value = uiState.destinationAccountCode,
+                onValueChange = { newValue ->
+                    // Solo permitir dígitos y máximo 16 caracteres
+                    if (newValue.all { it.isDigit() } && newValue.length <= 16) {
+                        viewModel.setIntent(FormIntent.DestinationAccountCodeChanged(newValue))
+                    }
+                },
+                label = { Text("Cuenta destino") },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Ingrese el código de cuenta") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true
+            )
+
+            OutlinedTextField(
                 value = uiState.amount,
                 onValueChange = { newValue ->
                     // Solo permitir dígitos
                     if (newValue.all { it.isDigit() }) {
-                        viewModel.setIntent(FormIntent.AmountChanged(newValue))
+                        viewModel.setIntent(FormIntent.AmountChanged(newValue, account.availableBalance))
                     }
                 },
                 label = { Text("Monto") },
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = AmountVisualTransformation(currencySymbol = "S/"),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true
+                singleLine = true,
+                isError = uiState.insufficientFundsError,
+                supportingText = if (uiState.insufficientFundsError && uiState.errorMessage != null) {
+                    { Text(uiState.errorMessage!!) }
+                } else null
             )
 
             OutlinedTextField(
@@ -106,10 +132,25 @@ fun FormScreen(
 
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                enabled = uiState.amount.isNotEmpty(),
-                onClick = { viewModel.setIntent(FormIntent.ContinueClicked) }
+                enabled = uiState.destinationAccountCode.isNotEmpty() && 
+                         uiState.amount.isNotEmpty() && 
+                         !uiState.isLoading &&
+                         !uiState.insufficientFundsError,
+                onClick = { 
+                    viewModel.setIntent(FormIntent.CreateTransaction(account))
+                }
             ) {
-                Text("Continuar")
+                Text("Procesar Transacción")
+            }
+            
+            // Mostrar mensaje de error general si existe (no de saldo, ese se muestra en supportingText)
+            if (uiState.errorMessage != null && !uiState.insufficientFundsError) {
+                Text(
+                    text = uiState.errorMessage!!,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
         }
     }
