@@ -1,0 +1,2 @@
+# Carpeta para interfaces de repositorios
+# Aquí van las interfaces que define el dominio (UserRepository, ProductRepository, etc.)

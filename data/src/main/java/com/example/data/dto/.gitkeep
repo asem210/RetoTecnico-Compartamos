@@ -1,0 +1,2 @@
+# Carpeta para DTOs (Data Transfer Objects)
+# Aquí van los modelos que vienen de la API con @Serializable
