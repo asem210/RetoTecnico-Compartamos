@@ -1,5 +1,6 @@
 package com.example.domain.di
 
+import com.example.domain.usecase.account.GetAccountByIdUseCase
 import org.koin.dsl.module
 
 /**
@@ -7,6 +8,6 @@ import org.koin.dsl.module
  * Aquí se registran los casos de uso
  */
 val domainModule = module {
-    // Use cases
-    // factory { UseCase(get()) }
+    // Account use cases
+    factory { GetAccountByIdUseCase(get()) }
 }

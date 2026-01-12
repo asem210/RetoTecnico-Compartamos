@@ -73,8 +73,7 @@ dependencies {
 
     // Koin
     implementation(libs.koin.android)
-    // koin-androidx-compose puede no estar disponible en Koin 3.5.6
-    // Si se necesita, considerar actualizar a Koin 3.6.0+ o usar koin-androidx-viewmodel
+    implementation(libs.koin.androidx.compose)
 
     // Debug
     debugImplementation(libs.androidx.compose.ui.tooling)

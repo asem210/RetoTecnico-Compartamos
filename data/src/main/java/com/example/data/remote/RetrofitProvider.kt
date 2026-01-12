@@ -9,32 +9,38 @@ import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
 
 /**
- * Provee una instancia configurada de Retrofit
- * Configuración base para servicios REST
+ * Proveedor de Retrofit para la aplicación
  */
-fun provideRetrofit(): Retrofit {
-    val json = Json {
-        ignoreUnknownKeys = true
-        prettyPrint = false
-        isLenient = true
+object RetrofitProvider {
+    
+    /**
+     * Provee una instancia configurada de Retrofit
+     * Configuración base para servicios REST
+     */
+    fun provideRetrofit(): Retrofit {
+        val json = Json {
+            ignoreUnknownKeys = true
+            prettyPrint = false
+            isLenient = true
+        }
+
+        val contentType = "application/json".toMediaType()
+
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
+        val okHttpClient = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .addInterceptor(loggingInterceptor)
+            .build()
+
+        return Retrofit.Builder()
+            .baseUrl("https://api.example.com/")
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
     }
-
-    val contentType = "application/json".toMediaType()
-
-    val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
-    }
-
-    val okHttpClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
-        .addInterceptor(loggingInterceptor)
-        .build()
-
-    return Retrofit.Builder()
-        .baseUrl("https://api.example.com/")
-        .client(okHttpClient)
-        .addConverterFactory(json.asConverterFactory(contentType))
-        .build()
 }

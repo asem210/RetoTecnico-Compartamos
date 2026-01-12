@@ -1,6 +1,12 @@
 package com.example.data.di
 
+import com.example.data.datasource.account.AccountDataSource
+import com.example.data.remote.RetrofitProvider
+import com.example.data.remote.account.AccountApiService
+import com.example.data.repository.account.AccountRepositoryImpl
+import com.example.domain.repository.account.AccountRepository
 import org.koin.dsl.module
+import retrofit2.Retrofit
 
 /**
  * Módulo de inyección de dependencias para la capa de datos
@@ -8,14 +14,16 @@ import org.koin.dsl.module
  */
 val dataModule = module {
     // Retrofit - Singleton
-    // single { provideRetrofit() }
+    single { RetrofitProvider.provideRetrofit() }
     
-    // API Services
-    // factory<ApiService> { get<Retrofit>().create(ApiService::class.java) }
+    // API Services - Account
+    factory<AccountApiService> {
+        get<Retrofit>().create(AccountApiService::class.java)
+    }
     
-    // Data Sources
-    // factory { DataSource(get()) }
+    // Data Sources - Account
+    factory { AccountDataSource(get()) }
     
-    // Repositories
-    // factory<Repository> { RepositoryImpl(get()) }
+    // Repositories - Account
+    factory<AccountRepository> { AccountRepositoryImpl(get()) }
 }
